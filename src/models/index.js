@@ -1,10 +1,12 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // BLOG POST
 // ─────────────────────────────────────────────────────────────────────────────
+const mongoose = require('mongoose');
+
 const blogSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true },
-    slug: { type: String, unique: true },
+    slug: { type: String, unique: true }, // unique: true automatically creates an index
     excerpt: { type: String, maxlength: 400 },
     content: { type: String, required: true },
     coverImage: String,
@@ -48,5 +50,4 @@ blogSchema.index({
   publishedAt: -1,
 });
 
-// REMOVE THIS
-// blogSchema.index({ slug: 1 });
+module.exports = mongoose.model('Blog', blogSchema);
