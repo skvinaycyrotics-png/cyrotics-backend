@@ -149,7 +149,10 @@ const projectSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Indexes
+// ─────────────────────────────────────────────────────────
+// INDEXES
+// ─────────────────────────────────────────────────────────
+
 projectSchema.index({
   client: 1,
   status: 1,
@@ -163,10 +166,10 @@ projectSchema.index({
   createdAt: -1,
 });
 
-// DO NOT ADD:
-// projectSchema.index({ slug: 1 });
+// ─────────────────────────────────────────────────────────
+// PRE SAVE
+// ─────────────────────────────────────────────────────────
 
-// Pre-save
 projectSchema.pre('save', async function (next) {
   try {
     if (!this.projectId) {
