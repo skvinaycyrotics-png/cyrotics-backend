@@ -160,9 +160,6 @@ const userSchema = new mongoose.Schema(
 // INDEXES
 // ─────────────────────────────────────────────────────────
 
-// REMOVE THIS:
-// userSchema.index({ email: 1 });
-
 userSchema.index({
   role: 1,
   status: 1,
