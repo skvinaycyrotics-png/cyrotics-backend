@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: cyrotics-backend
+    env: node
+    region: singapore
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      # All other secrets must be added manually in Render dashboard
+      # Never commit actual secret values here
