@@ -45,9 +45,12 @@ app.use(helmet({
   },
 }));
 
-// CORS — only allow your frontend
+// CORS — Whitelist your frontend, production subdomains, and local ports
 const allowedOrigins = [
   process.env.FRONTEND_URL,
+  'https://www.cyrotics.in',
+  'https://cyrotics.in',
+  'https://portal.cyrotics.in', // 🚀 FIXED: Added to clear the CORS block on your portal inquiries
   'http://localhost:3000',
   'http://localhost:3001',
 ].filter(Boolean);
