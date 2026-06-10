@@ -169,7 +169,5 @@ ticketSchema.pre('save', async function (next) {
   }
 });
 
-module.exports = mongoose.model(
-  'Ticket',
-  ticketSchema
-);
+// 🚀 FIXED: Enforce safe compilation check fallback pattern on the Ticket schema export string
+module.exports = mongoose.models.Ticket || mongoose.model('Ticket', ticketSchema);
