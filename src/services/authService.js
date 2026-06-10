@@ -4,10 +4,11 @@ const User = require('../models/User');
 const { AuditLog } = require('../models/index');
 const logger = require('../utils/logger');
 
+// 🚀 FIXED: Tailored specifically for Cross-Domain Cookie transfers (Render -> Vercel)
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'strict',
+  secure: true,          // 🚀 CRITICAL: Must be true for cross-domain cookies to work over HTTPS
+  sameSite: 'none',      // 🚀 CRITICAL: Allows cookies to traverse different domains securely
   path: '/',
 };
 
