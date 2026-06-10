@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// BLOG POST
+// BLOG POST MODEL
 // ─────────────────────────────────────────────────────────────────────────────
 const mongoose = require('mongoose');
 
@@ -44,10 +44,11 @@ blogSchema.pre('save', function (next) {
   next();
 });
 
-// KEEP THIS
+// Compound Index for fast retrieval of published articles sorted by date
 blogSchema.index({
   published: 1,
   publishedAt: -1,
 });
 
-module.exports = mongoose.model('Blog', blogSchema);
+// 🚀 FIXED: Defensive export to prevent circular reference compilation locks
+module.exports = mongoose.models.Blog || mongoose.model('Blog', blogSchema);
