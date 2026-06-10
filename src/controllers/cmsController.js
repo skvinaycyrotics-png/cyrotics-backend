@@ -1,4 +1,10 @@
-const { Testimonial, Job, Blog, SocialLink } = require('../models/index');
+// 🚀 FIXED: Importing models directly from their individual schema files 
+// to prevent any circular dependency crashes with the central index file.
+const Testimonial = require('../models/Testimonial');
+const Job = require('../models/Job');
+const Blog = require('../models/Blog');
+const SocialLink = require('../models/SocialLink');
+
 const { successResponse, errorResponse, paginatedResponse } = require('../utils/response');
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -106,28 +112,6 @@ exports.getBlog = async (req, res) => {
     // Increment views (fire and forget)
     Blog.findByIdAndUpdate(blog._id, { $inc: { views: 1 } }).exec();
     return successResponse(res, 200, 'Blog.', { blog });
-  } catch (err) { return errorResponse(res, 500, err.message); }
-};
-
-exports.createBlog = async (req, res) => {
-  try {
-    const blog = await Blog.create({ ...req.body, author: req.user._id });
-    return successResponse(res, 201, 'Blog created.', { blog });
-  } catch (err) { return errorResponse(res, 500, err.message); }
-};
-
-exports.updateBlog = async (req, res) => {
-  try {
-    const blog = await Blog.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!blog) return errorResponse(res, 404, 'Not found.');
-    return successResponse(res, 200, 'Updated.', { blog });
-  } catch (err) { return errorResponse(res, 500, err.message); }
-};
-
-exports.deleteBlog = async (req, res) => {
-  try {
-    await Blog.findByIdAndDelete(req.params.id);
-    return successResponse(res, 200, 'Deleted.');
   } catch (err) { return errorResponse(res, 500, err.message); }
 };
 
