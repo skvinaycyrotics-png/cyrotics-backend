@@ -4,11 +4,14 @@ const User = require('../models/User');
 const { AuditLog } = require('../models/index');
 const logger = require('../utils/logger');
 
-// 🚀 FIXED: Tailored specifically for Cross-Domain Cookie transfers (Render -> Vercel)
+const isProduction = process.env.NODE_ENV === 'production';
+
+// 🚀 FIXED: Added the explicit wildcard root domain restriction bypass
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: true,          // 🚀 CRITICAL: Must be true for cross-domain cookies to work over HTTPS
-  sameSite: 'none',      // 🚀 CRITICAL: Allows cookies to traverse different domains securely
+  secure: true,          // Required for cross-domain cookies to work over HTTPS
+  sameSite: 'none',      // Allows cookies to traverse different domains securely
+  domain: isProduction ? '.cyrotics.in' : undefined, // 🔥 CRITICAL: Sharing keys securely across subdomains
   path: '/',
 };
 
