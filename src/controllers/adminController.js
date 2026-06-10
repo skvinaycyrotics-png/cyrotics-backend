@@ -1,10 +1,18 @@
 const User = require('../models/User');
 const Project = require('../models/Project');
 const Ticket = require('../models/Ticket');
-const { ContactRequest, RegistrationRequest, Testimonial, Job, Blog, SocialLink, AuditLog } = require('../models/index');
+
+// 🚀 FIXED: Importing models directly from their individual files to break the circular dependency loop
+const ContactRequest = require('../models/ContactRequest');
+const RegistrationRequest = require('../models/RegistrationRequest');
+const AuditLog = require('../models/AuditLog');
+
+// If you need the other index models later, keep them isolated here
+const { Testimonial, Job, Blog, SocialLink } = require('../models/index');
+
 const { successResponse, errorResponse, paginatedResponse } = require('../utils/response');
 const emailService = require('../services/emailService');
-const { auditLog } = require('../services/authService');
+const authService = require('../services/authService'); // 🚀 Changed to whole service object import
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 
@@ -93,7 +101,11 @@ exports.approveUser = async (req, res) => {
     await user.save();
 
     await emailService.registrationApproved(user, tempPassword);
-    await auditLog({ userId: req.user._id, action: 'USER_APPROVED', resource: 'User', resourceId: user._id, req });
+    
+    // Use fixed service reference call
+    if (authService.auditLog) {
+      await authService.auditLog({ userId: req.user._id, action: 'USER_APPROVED', resource: 'User', resourceId: user._id, req });
+    }
 
     return successResponse(res, 200, 'User approved and credentials sent.');
   } catch (err) {
@@ -110,7 +122,10 @@ exports.rejectUser = async (req, res) => {
     }, { new: true });
     if (!user) return errorResponse(res, 404, 'User not found.');
     await emailService.registrationRejected({ email: user.email, name: user.name, reason });
-    await auditLog({ userId: req.user._id, action: 'USER_REJECTED', resource: 'User', resourceId: user._id, req });
+    
+    if (authService.auditLog) {
+      await authService.auditLog({ userId: req.user._id, action: 'USER_REJECTED', resource: 'User', resourceId: user._id, req });
+    }
     return successResponse(res, 200, 'User rejected.');
   } catch (err) {
     return errorResponse(res, 500, err.message);
@@ -122,7 +137,10 @@ exports.suspendUser = async (req, res) => {
   try {
     const user = await User.findByIdAndUpdate(req.params.id, { status: 'suspended' }, { new: true });
     if (!user) return errorResponse(res, 404, 'User not found.');
-    await auditLog({ userId: req.user._id, action: 'USER_SUSPENDED', resource: 'User', resourceId: user._id, req });
+    
+    if (authService.auditLog) {
+      await authService.auditLog({ userId: req.user._id, action: 'USER_SUSPENDED', resource: 'User', resourceId: user._id, req });
+    }
     return successResponse(res, 200, 'User suspended.');
   } catch (err) {
     return errorResponse(res, 500, err.message);
@@ -146,7 +164,10 @@ exports.deleteUser = async (req, res) => {
   try {
     const user = await User.findByIdAndDelete(req.params.id);
     if (!user) return errorResponse(res, 404, 'User not found.');
-    await auditLog({ userId: req.user._id, action: 'USER_DELETED', resource: 'User', resourceId: req.params.id, req });
+    
+    if (authService.auditLog) {
+      await authService.auditLog({ userId: req.user._id, action: 'USER_DELETED', resource: 'User', resourceId: req.params.id, req });
+    }
     return successResponse(res, 200, 'User deleted.');
   } catch (err) {
     return errorResponse(res, 500, err.message);
@@ -188,7 +209,10 @@ exports.approveRegistration = async (req, res) => {
     await regReq.save();
 
     await emailService.registrationApproved(newUser, tempPassword);
-    await auditLog({ userId: req.user._id, action: 'REGISTRATION_APPROVED', resource: 'RegistrationRequest', resourceId: regReq._id, req });
+    
+    if (authService.auditLog) {
+      await authService.auditLog({ userId: req.user._id, action: 'REGISTRATION_APPROVED', resource: 'RegistrationRequest', resourceId: regReq._id, req });
+    }
     return successResponse(res, 200, 'Registration approved and account created.');
   } catch (err) {
     return errorResponse(res, 500, err.message);
