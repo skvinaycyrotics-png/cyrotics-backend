@@ -12,6 +12,10 @@ exports.login = async (req, res) => {
   const { email, password, twoFactorCode } = req.body;
 
   try {
+    if (!email || !password) {
+      return errorResponse(res, 400, 'Email and password are required fields.');
+    }
+
     const user = await User.findOne({ email: email.toLowerCase() })
       .select('+password +refreshTokens +twoFactorSecret');
 
@@ -59,6 +63,7 @@ exports.login = async (req, res) => {
     user.lastLoginIP = req.ip;
     await user.save();
 
+    // 🚀 ENFORCED: Sets cross-domain secure authorization cookies
     setTokenCookies(res, accessToken, refreshToken);
     await auditLog({ userId: user._id, action: 'LOGIN_SUCCESS', req });
 
@@ -73,7 +78,7 @@ exports.login = async (req, res) => {
 // ── POST /api/auth/refresh ────────────────────────────────────────────────────
 exports.refresh = async (req, res) => {
   const token = req.cookies?.refreshToken;
-  if (!token) return errorResponse(res, 401, 'No refresh token.');
+  if (!token) return errorResponse(res, 401, 'No refresh token provided.');
 
   try {
     const hashed = crypto.createHash('sha256').update(token).digest('hex');
@@ -85,12 +90,14 @@ exports.refresh = async (req, res) => {
     const newRefreshToken = generateRefreshToken();
     const newHashed = crypto.createHash('sha256').update(newRefreshToken).digest('hex');
 
+    // Rotate refresh tokens
     user.refreshTokens = user.refreshTokens.filter(t => t !== hashed);
     user.refreshTokens.push(newHashed);
     await user.save();
 
+    // 🚀 ENFORCED: Overwrite stale authorization structures safely across domains
     setTokenCookies(res, newAccessToken, newRefreshToken);
-    return successResponse(res, 200, 'Token refreshed.');
+    return successResponse(res, 200, 'Token refreshed successfully.');
   } catch (err) {
     return errorResponse(res, 500, err.message);
   }
@@ -98,20 +105,38 @@ exports.refresh = async (req, res) => {
 
 // ── POST /api/auth/logout ─────────────────────────────────────────────────────
 exports.logout = async (req, res) => {
-  const token = req.cookies?.refreshToken;
-  if (token && req.user) {
-    const hashed = crypto.createHash('sha256').update(token).digest('hex');
-    await User.findByIdAndUpdate(req.user._id, { $pull: { refreshTokens: hashed } });
-    await auditLog({ userId: req.user._id, action: 'LOGOUT', req });
+  try {
+    const token = req.cookies?.refreshToken;
+    if (token && req.user) {
+      const hashed = crypto.createHash('sha256').update(token).digest('hex');
+      await User.findByIdAndUpdate(req.user._id, { $pull: { refreshTokens: hashed } });
+      await auditLog({ userId: req.user._id, action: 'LOGOUT', req });
+    }
+    
+    // 🚀 ENFORCED: Wipe clear client layout cookie tracking elements securely
+    clearTokenCookies(res);
+    return successResponse(res, 200, 'Logged out successfully.');
+  } catch (err) {
+    return errorResponse(res, 500, err.message);
   }
-  clearTokenCookies(res);
-  return successResponse(res, 200, 'Logged out successfully.');
 };
 
 // ── GET /api/auth/me ──────────────────────────────────────────────────────────
 exports.getMe = async (req, res) => {
-  const user = await User.findById(req.user._id);
-  return successResponse(res, 200, 'User profile.', { user });
+  try {
+    if (!req.user || !req.user._id) {
+      return errorResponse(res, 401, 'Not authenticated.');
+    }
+    
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return errorResponse(res, 404, 'User account profile not found.');
+    }
+    
+    return successResponse(res, 200, 'User profile retrieved successfully.', { user });
+  } catch (err) {
+    return errorResponse(res, 500, err.message);
+  }
 };
 
 // ── PUT /api/auth/change-password ─────────────────────────────────────────────
@@ -121,6 +146,7 @@ exports.changePassword = async (req, res) => {
     const user = await User.findById(req.user._id).select('+password');
     const match = await user.comparePassword(currentPassword);
     if (!match) return errorResponse(res, 400, 'Current password is incorrect.');
+    
     user.password = newPassword;
     await user.save();
     await auditLog({ userId: user._id, action: 'PASSWORD_CHANGED', req });
@@ -148,9 +174,12 @@ exports.setup2FA = async (req, res) => {
 exports.verify2FA = async (req, res) => {
   try {
     const { code } = req.body;
+    if (!code) return errorResponse(res, 400, 'Verification code is required.');
+
     const user = await User.findById(req.user._id).select('+twoFactorSecret');
     const valid = authenticator.verify({ token: code, secret: user.twoFactorSecret });
     if (!valid) return errorResponse(res, 400, 'Invalid 2FA code.');
+    
     await User.findByIdAndUpdate(req.user._id, { twoFactorEnabled: true });
     await auditLog({ userId: user._id, action: '2FA_ENABLED', req });
     return successResponse(res, 200, '2FA enabled successfully.');
