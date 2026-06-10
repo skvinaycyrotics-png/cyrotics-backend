@@ -250,7 +250,5 @@ userSchema.methods.incLoginAttempts =
     return this.updateOne(updates);
   };
 
-module.exports = mongoose.model(
-  'User',
-  userSchema
-);
+// 🚀 FIXED: Enforce a safe compilation check fallback pattern on the User export string
+module.exports = mongoose.models.User || mongoose.model('User', userSchema);
